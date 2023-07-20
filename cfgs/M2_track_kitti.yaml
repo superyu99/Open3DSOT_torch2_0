@@ -1,7 +1,7 @@
 #data
 dataset: kitti
-path: #put data root here
-category_name: Pedestrian # [Car, Van, Pedestrian, Cyclist, All]
+path: /data/public_dataset/kitti_tracking
+category_name: Car # [Car, Van, Pedestrian, Cyclist, All]
 bb_scale: 1.25
 bb_offset: 2
 point_sample_size: 1024

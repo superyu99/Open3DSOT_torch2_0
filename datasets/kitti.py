@@ -145,7 +145,7 @@ class kittiDataset(base_dataset.BaseDataset):
             calib_path = os.path.join(self.KITTI_calib, scene_id + ".txt")
             calib = self._read_calib_file(calib_path)
             self.calibs[scene_id] = calib
-        velo_to_cam = np.vstack((calib["Tr_velo_cam"], np.array([0, 0, 0, 1])))
+        velo_to_cam = np.vstack((calib["Tr_velo_to_cam:"], np.array([0, 0, 0, 1])))
 
         if self.coordinate_mode == 'velodyne':
             box_center_cam = np.array([anno["x"], anno["y"] - anno["height"] / 2, anno["z"], 1])

@@ -17,7 +17,7 @@ from torchmetrics import Accuracy
 class M2TRACK(base_model.MotionBaseModel):
     def __init__(self, config, **kwargs):
         super().__init__(config, **kwargs)
-        self.seg_acc = Accuracy(num_classes=2, average='none')
+        self.seg_acc = Accuracy(task='multiclass',num_classes=2, average='none')
 
         self.box_aware = getattr(config, 'box_aware', False)
         self.use_motion_cls = getattr(config, 'use_motion_cls', True)
@@ -60,7 +60,7 @@ class M2TRACK(base_model.MotionBaseModel):
                                                   nn.BatchNorm1d(128),
                                                   nn.ReLU(),
                                                   nn.Linear(128, 2))
-            self.motion_acc = Accuracy(num_classes=2, average='none')
+            self.motion_acc = Accuracy(task='multiclass',num_classes=2, average='none')
 
         self.motion_mlp = nn.Sequential(nn.Linear(256, 128),
                                         nn.BatchNorm1d(128),
@@ -248,14 +248,14 @@ class M2TRACK(base_model.MotionBaseModel):
 
         # log
         seg_acc = self.seg_acc(torch.argmax(output['seg_logits'], dim=1, keepdim=False), batch['seg_label'])
-        self.log('seg_acc_background/train', seg_acc[0], on_step=True, on_epoch=True, prog_bar=False, logger=True)
-        self.log('seg_acc_foreground/train', seg_acc[1], on_step=True, on_epoch=True, prog_bar=False, logger=True)
+        self.log('seg_acc_background/train', seg_acc[0], on_step=True, on_epoch=True, prog_bar=False, logger=True,sync_dist=True)
+        self.log('seg_acc_foreground/train', seg_acc[1], on_step=True, on_epoch=True, prog_bar=False, logger=True,sync_dist=True)
         if self.use_motion_cls:
             motion_acc = self.motion_acc(torch.argmax(output['motion_cls'], dim=1, keepdim=False),
                                          batch['motion_state_label'])
-            self.log('motion_acc_static/train', motion_acc[0], on_step=True, on_epoch=True, prog_bar=False, logger=True)
+            self.log('motion_acc_static/train', motion_acc[0], on_step=True, on_epoch=True, prog_bar=False, logger=True,sync_dist=True)
             self.log('motion_acc_dynamic/train', motion_acc[1], on_step=True, on_epoch=True, prog_bar=False,
-                     logger=True)
+                     logger=True,sync_dist=True)
 
         log_dict = {k: v.item() for k, v in loss_dict.items()}
 

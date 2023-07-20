@@ -5,8 +5,9 @@ Created by zenn at 2021/7/18 15:08
 import pytorch_lightning as pl
 import argparse
 
-import pytorch_lightning.utilities.distributed
+# import pytorch_lightning.utilities.distributed
 import torch
+torch.set_float32_matmul_precision("high")
 import yaml
 from easydict import EasyDict
 import os
@@ -79,15 +80,29 @@ if not cfg.test:
                                           save_top_k=cfg.save_top_k)
 
     # init trainer
-    trainer = pl.Trainer(gpus=-1, accelerator='ddp', max_epochs=cfg.epoch, resume_from_checkpoint=cfg.checkpoint,
-                         callbacks=[checkpoint_callback], default_root_dir=cfg.log_dir,
-                         check_val_every_n_epoch=cfg.check_val_every_n_epoch, num_sanity_val_steps=2,
-                         gradient_clip_val=cfg.gradient_clip_val)
-    trainer.fit(net, train_loader, val_loader)
+    trainer = pl.Trainer(devices=-1, accelerator='auto', max_epochs=cfg.epoch,
+                         callbacks=[checkpoint_callback],
+                         default_root_dir=cfg.log_dir,
+                         check_val_every_n_epoch=cfg.check_val_every_n_epoch,
+                         num_sanity_val_steps=2,
+                         gradient_clip_val=cfg.gradient_clip_val,
+                         fast_dev_run=False)
+    # init model
+    train_dataloader_length = len(train_loader) #用于设置OneCycle学习率
+    if cfg.checkpoint is None:
+        net = get_model(cfg.net_model)(cfg,train_dataloader_length=train_dataloader_length)
+    else:
+        net = get_model(cfg.net_model).load_from_checkpoint(cfg.checkpoint, config=cfg,train_dataloader_length=train_dataloader_length)
+
+    trainer.fit(net, train_loader, val_loader, ckpt_path=cfg.checkpoint)
 else:
     test_data = get_dataset(cfg, type='test', split=cfg.test_split)
     test_loader = DataLoader(test_data, batch_size=1, num_workers=cfg.workers, collate_fn=lambda x: x, pin_memory=True)
 
-    trainer = pl.Trainer(gpus=-1, accelerator='ddp', default_root_dir=cfg.log_dir,
-                         resume_from_checkpoint=cfg.checkpoint)
-    trainer.test(net, test_loader)
+    trainer = pl.Trainer(devices=-1, accelerator='auto', default_root_dir=cfg.log_dir)
+
+    if cfg.checkpoint is None:
+        net = get_model(cfg.net_model)(cfg)
+    else:
+        net = get_model(cfg.net_model).load_from_checkpoint(cfg.checkpoint, config=cfg)
+    trainer.test(net, test_loader, ckpt_path=cfg.checkpoint)

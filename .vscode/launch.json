@@ -1,0 +1,46 @@
+{
+    // 使用 IntelliSense 了解相关属性。 
+    // 悬停以查看现有属性的描述。
+    // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "main_kitti",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "cfgs/M2_track_kitti.yaml",
+                "--batch_size",
+                "128",
+                "--epoch",
+                "80"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2,3"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "main_nuscenes",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "cfgs/M2_Track_nuscene.yaml",
+                "--batch_size",
+                "128",
+                "--epoch",
+                "80"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "2,3"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+    ]
+}
