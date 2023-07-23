@@ -19,7 +19,7 @@
                 "80"
             ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "2,3"
+                "CUDA_VISIBLE_DEVICES": "1"
             },
             "cwd": "${workspaceFolder}"
         },
@@ -38,9 +38,48 @@
                 "80"
             ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "2,3"
+                "CUDA_VISIBLE_DEVICES": "1"
             },
             "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "main_waymo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "cfgs/M2_Track_waymo.yaml",
+                "--batch_size",
+                "128",
+                "--epoch",
+                "80",
+                "--preloading"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "1"
+            },
+            "cwd": "${workspaceFolder}"
+        },
+        {
+            "name": "eval_waymo",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/main.py",
+            "console": "integratedTerminal",
+            "args": [
+                "--cfg",
+                "cfgs/M2_Track_waymo_eval.yaml",
+                "--checkpoint",
+                "/data/aronlin/Open3DSOT_ORIGIN/output/M2_origin_vehicle_0.025part/lightning_logs/version_0/checkpoints/epoch=54-step=204820.ckpt",
+                "--test"
+            ],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "0"
+            },
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
         },
     ]
 }

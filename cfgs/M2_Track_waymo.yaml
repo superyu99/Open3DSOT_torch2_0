@@ -1,6 +1,6 @@
 #data
 dataset: waymo
-path: #put data root here
+path: /data/public_dataset/m2_waymo #put data root here
 category_name: Vehicle # [Vehicle, Pedestrian, Cyclist]
 bb_scale: 1.25
 bb_offset: 2
@@ -17,7 +17,7 @@ test_split: test
 train_type: train_motion
 num_candidates: 4
 motion_threshold: 0.15
-use_augmentation: True
+use_augmentation: False
 
 
 box_aware: True

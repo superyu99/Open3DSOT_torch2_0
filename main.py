@@ -3,6 +3,8 @@ main.py
 Created by zenn at 2021/7/18 15:08
 """
 import pytorch_lightning as pl
+from pytorch_lightning import seed_everything
+seed_everything(42)
 import argparse
 
 # import pytorch_lightning.utilities.distributed
@@ -35,7 +37,7 @@ def parse_config():
     parser.add_argument('--batch_size', type=int, default=100, help='input batch size')
     parser.add_argument('--epoch', type=int, default=60, help='number of epochs')
     parser.add_argument('--save_top_k', type=int, default=-1, help='save top k checkpoints')
-    parser.add_argument('--check_val_every_n_epoch', type=int, default=1, help='check_val_every_n_epoch')
+    parser.add_argument('--check_val_every_n_epoch', type=int, default=5, help='check_val_every_n_epoch')
     parser.add_argument('--workers', type=int, default=10, help='number of data loading workers')
     parser.add_argument('--cfg', type=str, help='the config_file')
     parser.add_argument('--checkpoint', type=str, default=None, help='checkpoint location')

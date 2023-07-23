@@ -1,36 +1,37 @@
 #data
-dataset: nuscenes
-path:  /data/public_dataset/nuscenes #put data root here
-version: v1.0-trainval
-category_name: Car
+dataset: waymo_eval
+path: /data/public_dataset/waymo/tracking #put data root here
+category_name: Vehicle # [Vehicle, Pedestrian, Cyclist]
 bb_scale: 1.25
 bb_offset: 2
 point_sample_size: 1024
 degrees: False
 coordinate_mode: velodyne
-up_axis: [0,0,1]
-preload_offset: 10
+up_axis: [ 0,0,1 ]
+
+preload_offset: 60
 data_limit_box: True
-key_frame_only: True
-train_split: train_track
-val_split: val
-test_split: val
+train_split: train
+val_split: test
+test_split: test
 train_type: train_motion
 num_candidates: 4
 motion_threshold: 0.15
-use_augmentation: True
+use_augmentation: False
 
+
+box_aware: True
+
+tiny: False # for debug only
 
 #model configuration
 net_model: m2track
-box_aware: True
 
 #loss configuration
 center_weight: 2
 angle_weight: 10.0
 seg_weight: 0.1
-bc_weight: 1
-
+bc_weight: 1.0
 motion_cls_seg_weight: 0.1
 
 

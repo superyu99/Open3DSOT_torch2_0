@@ -37,6 +37,17 @@ class WaymoDataset(base_dataset.BaseDataset):
 
         self.tiny = kwargs.get('tiny', False)
         self.tracklet_anno_list, self.tracklet_len_list = self._build_tracklet_anno()
+
+        # # 缩减[训练集 验证集]，长度为N的段落内随机选择一个元素
+        # if self.split in ["train", "val"]:
+        #     N = 40 #长度为N的段落内随机选择一个tracklet
+        #     tracklet_num = len(self.tracklet_anno_list)
+        #     indices_to_sample = [np.random.choice(range(i, min(i+N, tracklet_num))) for i in range(0, tracklet_num, N)]
+        #     self.tracklet_anno_list = [self.tracklet_anno_list[i] for i in indices_to_sample]
+        #     self.tracklet_len_list = [self.tracklet_len_list[i] for i in indices_to_sample]
+        #     print(len(self.tracklet_anno_list))
+        #     print(sum(self.tracklet_len_list))
+
         if self.tiny:
             self.tracklet_anno_list = self.tracklet_anno_list[:100]
             self.tracklet_len_list = self.tracklet_len_list[:100]
