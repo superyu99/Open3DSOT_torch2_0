@@ -2,7 +2,7 @@
 ___init__.py
 Created by zenn at 2021/7/18 15:50
 """
-from datasets import kitti, sampler, nuscenes_data, waymo_data, waymo_eval
+from datasets import kitti, sampler, nuscenes_data, waymo_data, waymo_eval, waymo_eval_ego
 
 
 def get_dataset(config, type='train', **kwargs):
@@ -34,6 +34,13 @@ def get_dataset(config, type='train', **kwargs):
         
     elif config.dataset == 'waymo_eval':
         data = waymo_eval.WaymoEvalDataset(path=config.path,
+                                       split=kwargs.get('split', 'train'),
+                                       category_name=config.category_name,
+                                       preloading=config.preloading,
+                                       preload_offset=config.preload_offset,
+                                       tiny=config.tiny)
+    elif config.dataset == 'waymo_eval_ego':
+        data = waymo_eval_ego.WaymoEvalEgoDataset(path=config.path,
                                        split=kwargs.get('split', 'train'),
                                        category_name=config.category_name,
                                        preloading=config.preloading,

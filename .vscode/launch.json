@@ -72,7 +72,7 @@
                 "--cfg",
                 "cfgs/M2_Track_waymo_eval.yaml",
                 "--checkpoint",
-                "/data/aronlin/Open3DSOT_ORIGIN/output/M2_origin_vehicle_0.025part/lightning_logs/version_0/checkpoints/epoch=54-step=204820.ckpt",
+                "/data/aronlin/Open3DSOT_ORIGIN/output/M2_car_kitti_origin/lightning_logs/version_0/checkpoints/epoch=34-step=27300.ckpt",
                 "--test"
             ],
             "env": {

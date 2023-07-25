@@ -7,8 +7,9 @@ import torch
 from easydict import EasyDict
 import pytorch_lightning as pl
 from datasets import points_utils
-from utils.metrics import TorchSuccess, TorchPrecision
+from utils.metrics import TorchSuccess, TorchPrecision, AverageMeter
 from utils.metrics import estimateOverlap, estimateAccuracy
+from utils.waymo_metrics import estimateWaymoOverlap #only for waymo IOU
 import torch.nn.functional as F
 import numpy as np
 from nuscenes.utils import geometry_utils
@@ -24,6 +25,18 @@ class BaseModel(pl.LightningModule):
         # testing metrics
         self.prec = TorchPrecision()
         self.success = TorchSuccess()
+
+        #for waymo：
+        if "waymo" in self.config["dataset"] :
+            self.succ_total = AverageMeter()
+            self.prec_total = AverageMeter()
+            self.succ_easy = AverageMeter()
+            self.prec_easy = AverageMeter()
+            self.succ_medium = AverageMeter()
+            self.prec_medium = AverageMeter()
+            self.succ_hard = AverageMeter()
+            self.prec_hard = AverageMeter()
+
 
     def configure_optimizers(self):
         if self.config.optimizer.lower() == 'sgd':
@@ -77,8 +90,12 @@ class BaseModel(pl.LightningModule):
                 candidate_box = self.evaluate_one_sample(data_dict, ref_box=ref_bb)
                 results_bbs.append(candidate_box)
 
-            this_overlap = estimateOverlap(this_bb, results_bbs[-1], dim=self.config.IoU_space,
+            if sequence[0].get('mode'): #for waymo only
+                this_overlap = estimateWaymoOverlap(this_bb, results_bbs[-1], dim=self.config.IoU_space)
+            else:
+                this_overlap = estimateOverlap(this_bb, results_bbs[-1], dim=self.config.IoU_space,
                                            up_axis=self.config.up_axis)
+                
             this_accuracy = estimateAccuracy(this_bb, results_bbs[-1], dim=self.config.IoU_space,
                                              up_axis=self.config.up_axis)
             ious.append(this_overlap)
@@ -104,10 +121,45 @@ class BaseModel(pl.LightningModule):
         sequence = batch[0]  # unwrap the batch with batch size = 1
         ious, distances, result_bbs = self.evaluate_one_sequence(sequence)
         # update metrics
-        self.success(torch.tensor(ious, device=self.device))
-        self.prec(torch.tensor(distances, device=self.device))
-        self.log('success/test', self.success, on_step=True, on_epoch=True)
-        self.log('precision/test', self.prec, on_step=True, on_epoch=True)
+        if sequence[0].get("mode"):
+            mode = sequence[0].get("mode")
+            tracklet_length = len(sequence) #需要减去1吗？
+            success = TorchSuccess()
+            precision = TorchPrecision()
+            success(torch.tensor(ious, device=self.device))
+            precision(torch.tensor(distances, device=self.device))
+            success = success.compute()
+            precision = precision.compute()
+            
+            self.succ_total.update(success, n=tracklet_length)
+            self.prec_total.update(precision, n=tracklet_length)
+
+            if mode == 'easy':
+                self.succ_easy.update(success, n=tracklet_length)
+                self.prec_easy.update(precision, n=tracklet_length)
+            elif mode == 'medium':
+                self.succ_medium.update(success, n=tracklet_length)
+                self.prec_medium.update(precision, n=tracklet_length)
+            elif mode == 'hard':
+                self.succ_hard.update(success, n=tracklet_length)
+                self.prec_hard.update(precision, n=tracklet_length)
+
+            self.log('waymo_success/total',  float(self.succ_total.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_success/easy',   float(self.succ_easy.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_success/medium', float(self.succ_medium.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_success/hard',   float(self.succ_hard.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_precision/total',  float(self.prec_total.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_precision/easy',   float(self.prec_easy.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_precision/medium', float(self.prec_medium.avg), on_step=True, on_epoch=True, batch_size=1)
+            self.log('waymo_precision/hard',   float(self.prec_hard.avg), on_step=True, on_epoch=True, batch_size=1)
+            
+
+
+        else:
+            self.success(torch.tensor(ious, device=self.device))
+            self.prec(torch.tensor(distances, device=self.device))
+            self.log('success/test', self.success, on_step=True, on_epoch=True)
+            self.log('precision/test', self.prec, on_step=True, on_epoch=True)
         return result_bbs
 
     def on_test_epoch_end(self):

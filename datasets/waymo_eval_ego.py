@@ -1,11 +1,17 @@
+"""
+Author: Yu Lin
+Date: 2023/07/25
+Description: Lidar-SOT Benchmark with ego.
+"""
+
 from datasets.data_classes import PointCloud, Box
 from pyquaternion import Quaternion
 import numpy as np
 import os
-from datasets import base_dataset
+from datasets import  base_dataset
 import json
 
-class TrackletAnnotation: #仅限于waymo_eval用
+class TrackletAnnotation: 
     def __init__(self, anno_str, anno_length):
         self.anno_str = anno_str
         self.anno_length = anno_length
@@ -13,7 +19,7 @@ class TrackletAnnotation: #仅限于waymo_eval用
     def __len__(self):
         return self.anno_length
 
-class WaymoEvalDataset(base_dataset.BaseDataset):
+class WaymoEvalEgoDataset(base_dataset.BaseDataset):
     def __init__(self, path, split, category_name="VEHICLE", **kwargs):
         super().__init__(path, split, category_name, **kwargs)
         self.Waymo_Folder = path
@@ -33,6 +39,7 @@ class WaymoEvalDataset(base_dataset.BaseDataset):
         self.hard_ids = extract_ids_from_bench('hard.json') #set格式，存储字符串格式的id，这个id对应了1121个序列里的标识符
 
         self.tracklet_anno_list, self.tracklet_len_list = self._build_tracklet_anno() #此时self.tracklet_anno_list只存储tracklet的id
+        # self.tracklet_anno_list, self.tracklet_len_list = self.tracklet_anno_list[:10], self.tracklet_len_list[:10]
         self.pcds = None
         self.gt_infos = None
         self.cache_tracklet_id = None
@@ -103,7 +110,14 @@ class WaymoEvalDataset(base_dataset.BaseDataset):
 
         pointcloud = self.pcds[str(idx)].transpose((1, 0))
 
+        ref_pose = np.reshape(self.egos[str(idx)], [4, 4])
+        global_from_car, _ = self.veh_pos_to_transform(ref_pose)
+        nbr_points = pointcloud.shape[1]
+        pointcloud[:3, :] = global_from_car.dot(
+            np.vstack((pointcloud[:3, :], np.ones(nbr_points)))
+        )[:3, :]
         pc = PointCloud(pointcloud)
+
 
         frame_bboxes = self.gt_infos['bboxes'][idx]
         frame_ids = self.gt_infos['ids'][idx]
@@ -115,6 +129,48 @@ class WaymoEvalDataset(base_dataset.BaseDataset):
         orientation = Quaternion(axis=[0, 0, 1], angle=bbox[3])
 
         bbox = Box(center, size, orientation)
+        bbox.rotate(Quaternion(matrix=global_from_car))
+        bbox.translate(global_from_car[:3, -1])
 
         return {"pc": pc, "3d_bbox": bbox, 'mode': self.mode}   
+
+    @staticmethod
+    def veh_pos_to_transform(veh_pos):
+        def transform_matrix(translation: np.ndarray = np.array([0, 0, 0]),
+                             rotation: Quaternion = Quaternion([1, 0, 0, 0]),
+                             inverse: bool = False) -> np.ndarray:
+            """
+            Convert pose to transformation matrix.
+            :param translation: <np.float32: 3>. Translation in x, y, z.
+            :param rotation: Rotation in quaternions (w ri rj rk).
+            :param inverse: Whether to compute inverse transform matrix.
+            :return: <np.float32: 4, 4>. Transformation matrix.
+            """
+            tm = np.eye(4)
+
+            if inverse:
+                rot_inv = rotation.rotation_matrix.T
+                trans = np.transpose(-np.array(translation))
+                tm[:3, :3] = rot_inv
+                tm[:3, 3] = rot_inv.dot(trans)
+            else:
+                tm[:3, :3] = rotation.rotation_matrix
+                tm[:3, 3] = np.transpose(np.array(translation))
+
+            return tm
+
+        "convert vehicle pose to two transformation matrix"
+        rotation = veh_pos[:3, :3]
+        tran = veh_pos[:3, 3]
+
+        global_from_car = transform_matrix(
+            tran, Quaternion(matrix=rotation), inverse=False
+        )
+
+        car_from_global = transform_matrix(
+            tran, Quaternion(matrix=rotation), inverse=True
+        )
+
+        return global_from_car, car_from_global
+
 
